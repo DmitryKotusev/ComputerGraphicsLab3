@@ -8,6 +8,7 @@ using UnityEditor;
 public class UIController : MonoBehaviour
 {
     string pathToFile;
+    Texture2D selectedTexture;
     public RawImage originalImage;
     public RawImage transformedImage;
 
@@ -24,12 +25,20 @@ public class UIController : MonoBehaviour
     public void ChooseFile()
     {
         // pathToFile = EditorUtility.OpenFilePanelWithFilters("Choose file", "", new string[] { "Image files", "png,jpg,jpeg" });
-        pathToFile = FileBrowser.OpenSingleFile("Choose file", "", new string[] { "png", "jpg" });
+        pathToFile = FileBrowser.OpenSingleFile("Choose file", "", new string[] { "jpg", "png" });
 
         WWW www = new WWW("file:///" + pathToFile);
 
+        selectedTexture = www.texture;
+
         UpdateOriginImage(www.texture);
         UpdateTransformedImage(www.texture);
+    }
+
+    public void UpdateImages()
+    {
+        UpdateOriginImage(selectedTexture);
+        UpdateTransformedImage(selectedTexture);
     }
 
     private void UpdateTransformedImage(Texture2D texture)
@@ -37,8 +46,8 @@ public class UIController : MonoBehaviour
         if(pathToFile != "")
         {
             transformedImage.enabled = true;
-            Texture2D grayScaledTexture = ImageTransfromScript.ConvertToGrayscale(texture);
-            transformedImage.texture = grayScaledTexture;
+            Texture2D transformedTexture = ImageTransformScript.TransformTexture(texture);
+            transformedImage.texture = transformedTexture;
             transformedImage.SizeToParent();
         }
         else
@@ -52,7 +61,7 @@ public class UIController : MonoBehaviour
         if (pathToFile != "")
         {
             originalImage.enabled = true;
-            Texture2D grayScaledTexture = ImageTransfromScript.ConvertToGrayscale(texture);
+            Texture2D grayScaledTexture = ImageTransformScript.ConvertToGrayscale(texture);
             originalImage.texture = grayScaledTexture;
             originalImage.SizeToParent();
         }
