@@ -11,15 +11,42 @@ public class UIController : MonoBehaviour
     Texture2D selectedTexture;
     public RawImage originalImage;
     public RawImage transformedImage;
+    public Dropdown dropdown;
+    public GameObject toggleObject;
+    public Toggle invertToggle;
 
     private void Start()
     {
         originalImage.enabled = false;
         transformedImage.enabled = false;
-        Debug.Log("Red: " + Color.red.grayscale);
-        Debug.Log("Green: " + Color.green.grayscale);
-        Debug.Log("Blue: " + Color.blue.grayscale);
-        Debug.Log("White: " + Color.white.grayscale);
+        ImageTransformScript.inverted = invertToggle.isOn;
+        //Debug.Log("Red: " + Color.red.grayscale);
+        //Debug.Log("Green: " + Color.green.grayscale);
+        //Debug.Log("Blue: " + Color.blue.grayscale);
+        //Debug.Log("White: " + Color.white.grayscale);
+    }
+
+    public void Invert()
+    {
+        ImageTransformScript.inverted = invertToggle.isOn;
+        Debug.Log(ImageTransformScript.inverted);
+        UpdateImages();
+    }
+
+    public void SetTransformMethod()
+    {
+        ImageTransformScript.transformMethod = (TransformMethod)dropdown.value;
+        if (ImageTransformScript.transformMethod != TransformMethod.NonLinearMin && ImageTransformScript.transformMethod != TransformMethod.NonLinearMedium
+            && ImageTransformScript.transformMethod != TransformMethod.NonLinearMax)
+        {
+            toggleObject.SetActive(true);
+        }
+        else
+        {
+            toggleObject.SetActive(false);
+        }
+        Debug.Log(ImageTransformScript.transformMethod);
+        UpdateImages();
     }
 
     public void ChooseFile()
@@ -43,7 +70,7 @@ public class UIController : MonoBehaviour
 
     private void UpdateTransformedImage(Texture2D texture)
     {
-        if(pathToFile != "")
+        if(pathToFile != "" && pathToFile != null)
         {
             transformedImage.enabled = true;
             Texture2D transformedTexture = ImageTransformScript.TransformTexture(texture);
@@ -58,7 +85,7 @@ public class UIController : MonoBehaviour
 
     private void UpdateOriginImage(Texture2D texture)
     {
-        if (pathToFile != "")
+        if (pathToFile != "" && pathToFile != null)
         {
             originalImage.enabled = true;
             Texture2D grayScaledTexture = ImageTransformScript.ConvertToGrayscale(texture);
