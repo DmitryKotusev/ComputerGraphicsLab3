@@ -18,7 +18,7 @@ public class ImageTransformScript : MonoBehaviour
 
     static public bool inverted = true;
 
-    static public TransformMethod transformMethod = TransformMethod.AbsoluteGradient;
+    static public TransformMethod transformMethod = TransformMethod.AbsoluteHistogram;
 
     static public Texture2D TransformTexture(Texture2D texture)
     {
