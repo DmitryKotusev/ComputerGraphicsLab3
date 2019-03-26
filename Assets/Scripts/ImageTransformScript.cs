@@ -8,7 +8,7 @@ public class ImageTransformScript : MonoBehaviour
     static public float histagramEpsilon = 2f;
 
     // Альфа для адаптивной пороговой обработки
-    static public float alpha = 2f / 3f;
+    static public float alpha = 0.4f;
 
     // Стартовый размер блока для адаптивной пороговой обработки
     static public int startK = 1;
@@ -30,7 +30,7 @@ public class ImageTransformScript : MonoBehaviour
         }
         if (transformMethod == TransformMethod.Adoptive)
         {
-            return AdoptiveTransform(grayScaleArray);
+            return AdoptiveTransform2(grayScaleArray);
         }
         if (transformMethod == TransformMethod.NonLinearMin || transformMethod == TransformMethod.NonLinearMedium
             || transformMethod == TransformMethod.NonLinearMax)
@@ -225,14 +225,24 @@ public class ImageTransformScript : MonoBehaviour
     static public float GetP(byte[,] grayScaleMatrix, int m, int n, int k)
     {
         float sum = 0;
+        int amount = 0;
         for (int x = -k; x <= k; x++)
         {
+            if (m + x < 0 || m + x >= grayScaleMatrix.GetLength(0))
+            {
+                continue;
+            }
             for (int y = -k; y <= k; y++)
             {
+                if (n + y < 0 || n + y >= grayScaleMatrix.GetLength(1))
+                {
+                    continue;
+                }
                 sum += grayScaleMatrix[m + x, n + y];
+                amount++;
             }
         }
-        return sum / (2 * k + 1) / (2 * k + 1);
+        return sum / amount;
     }
 
     static public byte GetFMax(byte[,] grayScaleMatrix, int m, int n, int k)
@@ -240,8 +250,16 @@ public class ImageTransformScript : MonoBehaviour
         byte max = 0;
         for (int x = -k; x <= k; x++)
         {
+            if(m + x < 0 || m + x >= grayScaleMatrix.GetLength(0))
+            {
+                continue;
+            }
             for (int y = -k; y <= k; y++)
             {
+                if (n + y < 0 || n + y >= grayScaleMatrix.GetLength(1))
+                {
+                    continue;
+                }
                 if (grayScaleMatrix[m + x, n + y] > max)
                 {
                     max = grayScaleMatrix[m + x, n + y];
@@ -256,8 +274,16 @@ public class ImageTransformScript : MonoBehaviour
         byte min = 255;
         for (int x = -k; x <= k; x++)
         {
+            if (m + x < 0 || m + x >= grayScaleMatrix.GetLength(0))
+            {
+                continue;
+            }
             for (int y = -k; y <= k; y++)
             {
+                if (n + y < 0 || n + y >= grayScaleMatrix.GetLength(1))
+                {
+                    continue;
+                }
                 if (grayScaleMatrix[m + x, n + y] < min)
                 {
                     min = grayScaleMatrix[m + x, n + y];
@@ -265,6 +291,89 @@ public class ImageTransformScript : MonoBehaviour
             }
         }
         return min;
+    }
+
+    static public Texture2D NonlinearFilterTransform(byte[,] grayScaleArray)
+    {
+        int k = sectionSize / 2;
+
+        byte[,] resultArray = new byte[grayScaleArray.GetLength(0), grayScaleArray.GetLength(1)];
+        Texture2D resultTexture = new Texture2D(grayScaleArray.GetLength(0), grayScaleArray.GetLength(1));
+ 
+        for (int x = k; x < grayScaleArray.GetLength(0) - k; x++)
+        {
+            for (int y = k; y < grayScaleArray.GetLength(1) - k; y++)
+            {
+                switch (transformMethod)
+                {
+                    case TransformMethod.NonLinearMin:
+                        {
+                            resultArray[x, y] = GetMinBrightness(grayScaleArray, x, y, k);
+                            break;
+                        }
+                    case TransformMethod.NonLinearMedium:
+                        {
+                            resultArray[x, y] = GetMediumBrightness(grayScaleArray, x, y, k);
+                            break;
+                        }
+                    case TransformMethod.NonLinearMax:
+                        {
+                            resultArray[x, y] = GetMaxBrightness(grayScaleArray, x, y, k);
+                            break;
+                        }
+                }
+                Color color = new Color(resultArray[x, y] / 255f, resultArray[x, y] / 255f, resultArray[x, y] / 255f, 1);
+                resultTexture.SetPixel(x, y, color);
+            }
+        }
+        resultTexture.Apply();
+
+        return resultTexture;
+    }
+
+    static public byte GetMediumBrightness(byte[,] grayScaleArray, int m, int n, int k)
+    {
+        int matrixSize = 2 * k + 1;
+        List<byte> sectionArray = new List<byte>(matrixSize * matrixSize);
+        for (int x = - k; x <= k; x++)
+        {
+            for (int y = -k; y <= k; y++)
+            {
+                sectionArray.Add(grayScaleArray[m + x, n + y]);
+            }
+        }
+        sectionArray.Sort();
+        return sectionArray[matrixSize * matrixSize / 2];
+    }
+
+    static public byte GetMaxBrightness(byte[,] grayScaleArray, int m, int n, int k)
+    {
+        int matrixSize = 2 * k + 1;
+        List<byte> sectionArray = new List<byte>(matrixSize * matrixSize);
+        for (int x = -k; x <= k; x++)
+        {
+            for (int y = -k; y <= k; y++)
+            {
+                sectionArray.Add(grayScaleArray[m + x, n + y]);
+            }
+        }
+        sectionArray.Sort();
+        return sectionArray[matrixSize * matrixSize - 1];
+    }
+
+    static public byte GetMinBrightness(byte[,] grayScaleArray, int m, int n, int k)
+    {
+        int matrixSize = 2 * k + 1;
+        List<byte> sectionArray = new List<byte>(matrixSize * matrixSize);
+        for (int x = -k; x <= k; x++)
+        {
+            for (int y = -k; y <= k; y++)
+            {
+                sectionArray.Add(grayScaleArray[m + x, n + y]);
+            }
+        }
+        sectionArray.Sort();
+        return sectionArray[0];
     }
 
     static public Texture2D AdoptiveTransform(byte[,] grayScaleArray)
@@ -356,6 +465,7 @@ public class ImageTransformScript : MonoBehaviour
             break;
         }
 
+        // Процесс бинаризации
         for (int x = 0; x < grayScaleArray.GetLength(0); x++)
         {
             int m = x / blockSize;
@@ -396,87 +506,94 @@ public class ImageTransformScript : MonoBehaviour
         return resultTexture;
     }
 
-    static public Texture2D NonlinearFilterTransform(byte[,] grayScaleArray)
+    static public Texture2D AdoptiveTransform2(byte[,] grayScaleArray)
     {
-        int k = sectionSize / 2;
-
-        byte[,] resultArray = new byte[grayScaleArray.GetLength(0), grayScaleArray.GetLength(1)];
+        int k = startK;
+        int blockSize = 2 * k + 1;
         Texture2D resultTexture = new Texture2D(grayScaleArray.GetLength(0), grayScaleArray.GetLength(1));
- 
-        for (int x = k; x < grayScaleArray.GetLength(0) - k; x++)
+
+        for (int x = 0; x < grayScaleArray.GetLength(0); x++)
         {
-            for (int y = k; y < grayScaleArray.GetLength(1) - k; y++)
+            for (int y = 0; y < grayScaleArray.GetLength(1); y++)
             {
-                switch (transformMethod)
+                int currentK;
+                byte t = countT(grayScaleArray, x, y, k, out currentK);
+                if (adoptiveCheckCriteria(grayScaleArray, x, y, currentK, t))
                 {
-                    case TransformMethod.NonLinearMin:
-                        {
-                            resultArray[x, y] = GetMinBrightness(grayScaleArray, x, y, k);
-                            break;
-                        }
-                    case TransformMethod.NonLinearMedium:
-                        {
-                            resultArray[x, y] = GetMediumBrightness(grayScaleArray, x, y, k);
-                            break;
-                        }
-                    case TransformMethod.NonLinearMax:
-                        {
-                            resultArray[x, y] = GetMaxBrightness(grayScaleArray, x, y, k);
-                            break;
-                        }
+                    Color c = inverted ? Color.black : Color.white;
+                    resultTexture.SetPixel(x, y, c);
                 }
-                Color color = new Color(resultArray[x, y] / 255f, resultArray[x, y] / 255f, resultArray[x, y] / 255f, 1);
-                resultTexture.SetPixel(x, y, color);
+                else
+                {
+                    Color c = inverted ? Color.white : Color.black;
+                    resultTexture.SetPixel(x, y, c);
+                }
             }
         }
+
         resultTexture.Apply();
 
         return resultTexture;
     }
 
-    static public byte GetMediumBrightness(byte[,] grayScaleArray, int m, int n, int k)
+    static public byte countT(byte[,] grayScaleArray, int m, int n, int k, out int newK)
     {
-        int matrixSize = 2 * k + 1;
-        List<byte> sectionArray = new List<byte>(matrixSize * matrixSize);
-        for (int x = - k; x <= k; x++)
+        int currentK = k;
+        int blockSize = 2 * k + 1;
+        while (true)
         {
-            for (int y = -k; y <= k; y++)
+            byte fMax = GetFMax(grayScaleArray, m, n, currentK);
+            byte fMin = GetFMin(grayScaleArray, m, n, currentK);
+            float p = GetP(grayScaleArray, m, n, k);
+            float deltaFMax = Mathf.Abs(p - fMax);
+            float deltaFMin = Mathf.Abs(p - fMin);
+            if (deltaFMax > deltaFMin)
             {
-                sectionArray.Add(grayScaleArray[m + x, n + y]);
+                newK = currentK;
+                return (byte)(alpha * (2f / 3f * fMin + 1f / 3f * p));
+            }
+            else if (deltaFMax < deltaFMin)
+            {
+                newK = currentK;
+                return (byte)(alpha * (1f / 3f * fMin + 2f / 3f * p));
+            }
+            else
+            {
+                if (fMax != fMin)
+                {
+                    currentK++;
+                    blockSize = 2 * currentK + 1;
+                }
+                else
+                {
+                    newK = currentK;
+                    return (byte)(alpha * p);
+                }
             }
         }
-        sectionArray.Sort();
-        return sectionArray[matrixSize * matrixSize / 2];
     }
 
-    static public byte GetMaxBrightness(byte[,] grayScaleArray, int m, int n, int k)
+    static public bool adoptiveCheckCriteria(byte[,] grayScaleArray, int m, int n, int k, byte t)
     {
-        int matrixSize = 2 * k + 1;
-        List<byte> sectionArray = new List<byte>(matrixSize * matrixSize);
-        for (int x = -k; x <= k; x++)
+        for (int x = -1; x <= 1; x++)
         {
-            for (int y = -k; y <= k; y++)
+            if (m + x <= 0 || m + x >= grayScaleArray.GetLength(0))
             {
-                sectionArray.Add(grayScaleArray[m + x, n + y]);
+                continue;
+            }
+            for (int y = -1; y <= 1; y++)
+            {
+                if (n + y <= 0 || n + y >= grayScaleArray.GetLength(1))
+                {
+                    continue;
+                }
+                if (Mathf.Abs(grayScaleArray[m, n] - GetP(grayScaleArray, m + x, n + y, 1)) <= t)
+                {
+                    return false;
+                }
             }
         }
-        sectionArray.Sort();
-        return sectionArray[matrixSize * matrixSize - 1];
-    }
-
-    static public byte GetMinBrightness(byte[,] grayScaleArray, int m, int n, int k)
-    {
-        int matrixSize = 2 * k + 1;
-        List<byte> sectionArray = new List<byte>(matrixSize * matrixSize);
-        for (int x = -k; x <= k; x++)
-        {
-            for (int y = -k; y <= k; y++)
-            {
-                sectionArray.Add(grayScaleArray[m + x, n + y]);
-            }
-        }
-        sectionArray.Sort();
-        return sectionArray[0];
+        return true;
     }
 }
 
