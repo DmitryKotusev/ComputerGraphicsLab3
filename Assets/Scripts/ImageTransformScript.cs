@@ -8,10 +8,10 @@ public class ImageTransformScript : MonoBehaviour
     static public float histagramEpsilon = 2f;
 
     // Альфа для адаптивной пороговой обработки
-    static public float alpha = 0.4f;
+    static public float alpha = 0.3f;
 
     // Стартовый размер блока для адаптивной пороговой обработки
-    static public int startK = 1;
+    static public int startK = 10;
 
     // Размер секции для нелинейного фильтра
     static public int sectionSize = 3;
@@ -587,7 +587,7 @@ public class ImageTransformScript : MonoBehaviour
                 {
                     continue;
                 }
-                if (Mathf.Abs(grayScaleArray[m, n] - GetP(grayScaleArray, m + x, n + y, 1)) <= t)
+                if (Mathf.Abs(grayScaleArray[m, n] - GetP(grayScaleArray, m + x, n + y, k)) <= t)
                 {
                     return false;
                 }
