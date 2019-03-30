@@ -8,10 +8,10 @@ public class ImageTransformScript : MonoBehaviour
     static public float histagramEpsilon = 2f;
 
     // Альфа для адаптивной пороговой обработки
-    static public float alpha = 0.3f;
+    static public float alpha = 0.08f;
 
     // Стартовый размер блока для адаптивной пороговой обработки
-    static public int startK = 10;
+    static public int startK = 5;
 
     // Размер секции для нелинейного фильтра
     static public int sectionSize = 3;
@@ -518,7 +518,7 @@ public class ImageTransformScript : MonoBehaviour
             {
                 int currentK;
                 byte t = countT(grayScaleArray, x, y, k, out currentK);
-                if (adoptiveCheckCriteria(grayScaleArray, x, y, currentK, t))
+                if (adoptiveCheckCriteria(grayScaleArray, x, y, k, t))
                 {
                     Color c = inverted ? Color.black : Color.white;
                     resultTexture.SetPixel(x, y, c);
@@ -544,18 +544,18 @@ public class ImageTransformScript : MonoBehaviour
         {
             byte fMax = GetFMax(grayScaleArray, m, n, currentK);
             byte fMin = GetFMin(grayScaleArray, m, n, currentK);
-            float p = GetP(grayScaleArray, m, n, k);
+            float p = GetP(grayScaleArray, m, n, currentK);
             float deltaFMax = Mathf.Abs(p - fMax);
             float deltaFMin = Mathf.Abs(p - fMin);
             if (deltaFMax > deltaFMin)
             {
                 newK = currentK;
-                return (byte)(alpha * (2f / 3f * fMin + 1f / 3f * p));
+                return (byte)(alpha * (2.0f / 3.0f * fMin + 1.0f / 3.0f * p));
             }
             else if (deltaFMax < deltaFMin)
             {
                 newK = currentK;
-                return (byte)(alpha * (1f / 3f * fMin + 2f / 3f * p));
+                return (byte)(alpha * (1.0f / 3.0f * fMin + 2.0f / 3.0f * p));
             }
             else
             {
@@ -577,13 +577,13 @@ public class ImageTransformScript : MonoBehaviour
     {
         for (int x = -1; x <= 1; x++)
         {
-            if (m + x <= 0 || m + x >= grayScaleArray.GetLength(0))
+            if (m + x < 0 || m + x >= grayScaleArray.GetLength(0))
             {
                 continue;
             }
             for (int y = -1; y <= 1; y++)
             {
-                if (n + y <= 0 || n + y >= grayScaleArray.GetLength(1))
+                if (n + y < 0 || n + y >= grayScaleArray.GetLength(1) || (x == 0 && y == 0))
                 {
                     continue;
                 }
